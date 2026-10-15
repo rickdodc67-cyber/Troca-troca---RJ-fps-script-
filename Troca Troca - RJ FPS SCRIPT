@@ -1,0 +1,1005 @@
+-- ============ DELTA — BOOSTER v10.5 ============
+-- Configs ativas: ESP, Master Boost, Aim Assist, No Recoil, No Spread, Infinite Jump, Gráfico Mínimo
+-- Hitbox DESATIVADO (não funciona)
+-- Cole em StarterPlayerScripts / StarterGui / executor.
+
+local U=game:GetService("UserInputService")
+local T=game:GetService("TweenService")
+local L=game:GetService("Lighting")
+local W=game:GetService("Workspace")
+local R=game:GetService("RunService")
+local P=game:GetService("Players")
+
+local lp=P.LocalPlayer
+if not lp then return end
+local pg=lp:WaitForChild("PlayerGui")
+local old=pg:FindFirstChild("DeltaBoost"); if old then old:Destroy() end
+
+-- ============ CORES ============
+local C={
+    bg=Color3.fromRGB(14,14,22),pn=Color3.fromRGB(22,22,32),pn2=Color3.fromRGB(30,30,44),
+    tx=Color3.fromRGB(235,235,245),dm=Color3.fromRGB(150,150,170),
+    on=Color3.fromRGB(80,220,140),off=Color3.fromRGB(255,80,100),
+    ac=Color3.fromRGB(160,80,255),st=Color3.fromRGB(55,55,75)
+}
+local FB,F=Enum.Font.GothamBold,Enum.Font.Gotham
+
+local function I(c,p) local i=Instance.new(c); for k,v in pairs(p or {}) do i[k]=v end; return i end
+local function cr(p,r) local c=Instance.new("UICorner"); c.CornerRadius=typeof(r)=="number" and UDim.new(0,r) or r; c.Parent=p; return c end
+local function tw(i,t,p) T:Create(i,TweenInfo.new(t or .15),p):Play() end
+local function sk(p,c,t,tr) local s=Instance.new("UIStroke"); s.Color=c or C.st; s.Thickness=t or 1; s.Transparency=tr or .3; s.Parent=p; return s end
+
+-- ============ ROOT ============
+local sg=I("ScreenGui",{Name="DeltaBoost",ResetOnSpawn=false,IgnoreGuiInset=true,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,Parent=pg})
+local MAIN_W,MAIN_H=520,360
+local TABS_W=110
+
+-- ============ PAINEL ============
+local rt=I("Frame",{Parent=sg,Size=UDim2.new(0,MAIN_W,0,MAIN_H),Position=UDim2.new(0,20,0,20),BackgroundColor3=C.bg,BorderSizePixel=0,Active=true})
+cr(rt,12); sk(rt)
+
+-- HEADER
+local hd=I("Frame",{Parent=rt,Size=UDim2.new(1,0,0,32),BackgroundColor3=C.pn,BorderSizePixel=0}); cr(hd,12)
+I("Frame",{Parent=hd,Size=UDim2.new(1,0,0,8),Position=UDim2.new(0,0,1,-8),BackgroundColor3=C.pn,BorderSizePixel=0})
+I("TextLabel",{Parent=hd,Size=UDim2.new(1,-120,1,0),Position=UDim2.new(0,12,0,0),BackgroundTransparency=1,Text="DELTA BOOST v10.5",TextColor3=C.ac,Font=FB,TextSize=13,TextXAlignment=Enum.TextXAlignment.Left})
+local dot=I("Frame",{Parent=hd,Size=UDim2.new(0,8,0,8),Position=UDim2.new(1,-72,.5,-4),BackgroundColor3=C.ac,BorderSizePixel=0}); cr(dot,4)
+local minB=I("TextButton",{Parent=hd,Size=UDim2.new(0,26,0,26),Position=UDim2.new(1,-32,.5,-13),BackgroundColor3=C.pn,Text="—",TextColor3=C.tx,Font=FB,TextSize=14,BorderSizePixel=0,AutoButtonColor=false}); cr(minB,5)
+
+-- TABS
+local tabBar=I("Frame",{Parent=rt,Size=UDim2.new(0,TABS_W,1,-32),Position=UDim2.new(0,0,0,32),BackgroundColor3=C.bg,BorderSizePixel=0})
+I("UIListLayout",{Parent=tabBar,Padding=UDim.new(0,2),SortOrder=Enum.SortOrder.LayoutOrder})
+I("UIPadding",{Parent=tabBar,PaddingTop=UDim.new(0,8),PaddingLeft=UDim.new(0,8),PaddingRight=UDim.new(0,8),PaddingBottom=UDim.new(0,8)})
+
+local contentX=TABS_W+4
+local contentFrame=I("Frame",{Parent=rt,Size=UDim2.new(1,-contentX,1,-32),Position=UDim2.new(0,contentX,0,32),BackgroundColor3=C.bg,BorderSizePixel=0})
+local pages=I("Frame",{Parent=contentFrame,Size=UDim2.new(1,0,1,0),BackgroundTransparency=1})
+
+local pageFrames={},tabBtns={},currentTab=nil
+
+local function switchTab(name)
+    if currentTab==name then return end
+    currentTab=name
+    for n,page in pairs(pageFrames) do page.Visible=(n==name) end
+    for n,btn in pairs(tabBtns) do
+        local ind=btn:FindFirstChildOfClass("Frame")
+        if n==name then tw(btn,.15,{BackgroundColor3=C.pn2,TextColor3=C.tx}); if ind then ind.Visible=true end
+        else tw(btn,.15,{BackgroundColor3=C.bg,TextColor3=C.dm}); if ind then ind.Visible=false end end
+    end
+end
+
+local function createTab(name)
+    local b=I("TextButton",{Parent=tabBar,Size=UDim2.new(1,0,0,32),BackgroundColor3=C.bg,Text="  "..name,TextColor3=C.dm,Font=F,TextSize=12,TextXAlignment=Enum.TextXAlignment.Left,BorderSizePixel=0,AutoButtonColor=false})
+    cr(b,6)
+    local ind=I("Frame",{Parent=b,Size=UDim2.new(0,3,0,16),Position=UDim2.new(0,0,.5,-8),BackgroundColor3=C.ac,BorderSizePixel=0,Visible=false}); cr(ind,2)
+    local page=I("ScrollingFrame",{Parent=pages,Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=3,ScrollBarImageColor3=C.ac,CanvasSize=UDim2.new(0,0,0,0),AutomaticCanvasSize=Enum.AutomaticSize.Y,Visible=false})
+    I("UIListLayout",{Parent=page,Padding=UDim.new(0,6),SortOrder=Enum.SortOrder.LayoutOrder})
+    I("UIPadding",{Parent=page,PaddingTop=UDim.new(0,8),PaddingBottom=UDim.new(0,8),PaddingLeft=UDim.new(0,10),PaddingRight=UDim.new(0,10)})
+    pageFrames[name]=page; tabBtns[name]=b
+    b.MouseButton1Click:Connect(function() switchTab(name) end)
+    return page
+end
+
+-- HELPERS UI
+local function sec(parent,title)
+    local h=I("Frame",{Parent=parent,Size=UDim2.new(1,0,0,20),BackgroundTransparency=1})
+    I("TextLabel",{Parent=h,Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,Text=string.upper(title),TextColor3=C.ac,Font=FB,TextSize=11,TextXAlignment=Enum.TextXAlignment.Left})
+    I("Frame",{Parent=h,Size=UDim2.new(1,0,0,1),Position=UDim2.new(0,0,1,-1),BackgroundColor3=C.st,BorderSizePixel=0})
+end
+
+local function tgl(parent,lbl,def,cb)
+    local on=def==true
+    local r=I("Frame",{Parent=parent,Size=UDim2.new(1,0,0,30),BackgroundTransparency=1})
+    I("TextLabel",{Parent=r,Size=UDim2.new(.7,0,1,0),BackgroundTransparency=1,Text=lbl,TextColor3=C.tx,Font=F,TextSize=12,TextXAlignment=Enum.TextXAlignment.Left})
+    local b=I("TextButton",{Parent=r,Size=UDim2.new(0,42,0,20),Position=UDim2.new(1,-42,.5,-10),BackgroundColor3=on and C.on or C.off,Text="",BorderSizePixel=0,AutoButtonColor=false}); cr(b,10)
+    local k=I("Frame",{Parent=b,Size=UDim2.new(0,16,0,16),Position=on and UDim2.new(1,-18,.5,-8) or UDim2.new(0,2,.5,-8),BackgroundColor3=Color3.new(1,1,1),BorderSizePixel=0}); cr(k,8)
+    local function st(v,c)
+        on=v and true or false
+        tw(b,.15,{BackgroundColor3=on and C.on or C.off})
+        tw(k,.15,{Position=on and UDim2.new(1,-18,.5,-8) or UDim2.new(0,2,.5,-8)})
+        if c and cb then cb(on) end
+    end
+    b.MouseButton1Click:Connect(function() st(not on,true) end)
+    return st
+end
+
+local function sld(parent,lbl,mn,mx,def,stp,cb)
+    local r=I("Frame",{Parent=parent,Size=UDim2.new(1,0,0,44),BackgroundTransparency=1})
+    I("TextLabel",{Parent=r,Size=UDim2.new(.65,0,0,16),BackgroundTransparency=1,Text=lbl,TextColor3=C.tx,Font=F,TextSize=12,TextXAlignment=Enum.TextXAlignment.Left})
+    local vl=I("TextLabel",{Parent=r,Size=UDim2.new(.35,0,0,16),Position=UDim2.new(.65,0,0,0),BackgroundTransparency=1,Text=tostring(def),TextColor3=C.ac,Font=FB,TextSize=12,TextXAlignment=Enum.TextXAlignment.Right})
+    local tr=I("Frame",{Parent=r,Size=UDim2.new(1,0,0,6),Position=UDim2.new(0,0,0,26),BackgroundColor3=C.pn,BorderSizePixel=0}); cr(tr,3)
+    local p0=(def-mn)/(mx-mn)
+    local fl=I("Frame",{Parent=tr,Size=UDim2.new(p0,0,1,0),BackgroundColor3=C.ac,BorderSizePixel=0}); cr(fl,3)
+    local kn=I("Frame",{Parent=tr,Size=UDim2.new(0,14,0,14),Position=UDim2.new(p0,-7,.5,-7),BackgroundColor3=Color3.new(1,1,1),BorderSizePixel=0,ZIndex=2}); cr(kn,7)
+    local function st(v,c)
+        v=math.clamp(v,mn,mx); if stp then v=math.floor(v/stp+.5)*stp end
+        local p=(v-mn)/(mx-mn)
+        fl.Size=UDim2.new(p,0,1,0); kn.Position=UDim2.new(p,-7,.5,-7)
+        vl.Text=(v==math.floor(v)) and tostring(math.floor(v)) or string.format("%.1f",v)
+        if c and cb then cb(v) end
+    end
+    local dg=false
+    local function up(i) st(mn+math.clamp((i.Position.X-tr.AbsolutePosition.X)/tr.AbsoluteSize.X,0,1)*(mx-mn),true) end
+    tr.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then dg=true; up(i) end end)
+    U.InputChanged:Connect(function(i) if dg and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then up(i) end end)
+    U.InputEnded:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then dg=false end end)
+    st(def,false)
+end
+
+local function btn(parent,lbl,col,cb)
+    local b=I("TextButton",{Parent=parent,Size=UDim2.new(1,0,0,30),BackgroundColor3=col or C.pn,Text=lbl,TextColor3=C.tx,Font=FB,TextSize=12,BorderSizePixel=0,AutoButtonColor=false}); cr(b,6)
+    b.MouseButton1Click:Connect(function() if cb then cb() end end)
+end
+
+local function selector(parent,title,options,current,cb)
+    local box=I("Frame",{Parent=parent,Size=UDim2.new(1,0,0,64),BackgroundTransparency=1})
+    I("TextLabel",{Parent=box,Size=UDim2.new(1,0,0,16),BackgroundTransparency=1,Text=title,TextColor3=C.tx,Font=F,TextSize=12,TextXAlignment=Enum.TextXAlignment.Left})
+    local btnsFrame=I("Frame",{Parent=box,Size=UDim2.new(1,0,0,42),Position=UDim2.new(0,0,0,20),BackgroundTransparency=1})
+    I("UIListLayout",{Parent=btnsFrame,FillDirection=Enum.FillDirection.Horizontal,Padding=UDim.new(0,4),SortOrder=Enum.SortOrder.LayoutOrder})
+    local btns={},selected=current
+    local function refresh()
+        for name,b in pairs(btns) do
+            if name==selected then tw(b,.15,{BackgroundColor3=C.ac,TextColor3=Color3.new(1,1,1)})
+            else tw(b,.15,{BackgroundColor3=C.pn,TextColor3=C.dm}) end
+        end
+    end
+    for _,opt in ipairs(options) do
+        local b=I("TextButton",{Parent=btnsFrame,Size=UDim2.new(0,60,1,0),BackgroundColor3=C.pn,Text=opt.label,TextColor3=C.dm,Font=F,TextSize=11,BorderSizePixel=0,AutoButtonColor=false}); cr(b,6)
+        btns[opt.id]=b
+        b.MouseButton1Click:Connect(function() selected=opt.id; refresh(); if cb then cb(opt.id) end end)
+    end
+    refresh()
+end
+
+-- NOTIFICAÇÕES
+local nh=I("Frame",{Parent=sg,Size=UDim2.new(0,220,0,100),Position=UDim2.new(1,-230,0,10),BackgroundTransparency=1})
+I("UIListLayout",{Parent=nh,Padding=UDim.new(0,4),SortOrder=Enum.SortOrder.LayoutOrder})
+
+local function nt(text,col)
+    local f=I("Frame",{Parent=nh,Size=UDim2.new(1,0,0,30),BackgroundColor3=C.pn,BorderSizePixel=0,BackgroundTransparency=.05})
+    cr(f,6); sk(f,col or C.ac,1,.3)
+    I("TextLabel",{Parent=f,Size=UDim2.new(1,-14,1,0),Position=UDim2.new(0,10,0,0),BackgroundTransparency=1,Text=text,TextColor3=C.tx,Font=F,TextSize=11,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true})
+    task.delay(2.2,function() if f and f.Parent then tw(f,.2,{BackgroundTransparency=1}); task.wait(.25); f:Destroy() end end)
+end
+
+-- ABAS
+local pageCombat=createTab("🎯 Combat")
+local pageMovement=createTab("🏃 Movement")
+local pageVisual=createTab("👁 Visual")
+local pageFPS=createTab("⚡ FPS")
+switchTab("🎯 Combat")
+
+-- ==================================================================
+-- AIM ASSIST (ATIVADO)
+-- ==================================================================
+local PART_OPTIONS={
+    {id="Torso",label="Torso",names={"HumanoidRootPart","Torso","UpperTorso"}},
+    {id="Head",label="Head",names={"Head"}},
+    {id="Peito",label="Peito",names={"UpperTorso","Torso","HumanoidRootPart"}},
+    {id="Barriga",label="Barriga",names={"LowerTorso","Torso","HumanoidRootPart"}},
+    {id="Braços",label="Braços",names={"LeftUpperArm","RightUpperArm","Left Arm","Right Arm","HumanoidRootPart"}},
+    {id="Pernas",label="Pernas",names={"LeftUpperLeg","RightUpperLeg","Left Leg","Right Leg","HumanoidRootPart"}},
+}
+
+local AA={
+    enabled=true,
+    range=350,fov=40,strength=0.55,
+    visibleOnly=true,ignoreNearby=true,nearbyDist=15,
+    teamCheck=true,target=nil,lockPart="Torso",
+    prediction=0.25,showFOV=false,
+    spreadShot=false,spreadAngle=3,
+}
+
+local function isEnemyAA(plr)
+    if plr==lp then return false end
+    if not AA.teamCheck then return true end
+    if plr.Team==nil or lp.Team==nil then return true end
+    return plr.Team~=lp.Team
+end
+
+local function isVisibleAA(fromPos,toPos)
+    local params=RaycastParams.new()
+    params.FilterType=Enum.RaycastFilterType.Exclude
+    params.IgnoreWater=true
+    local excludeList={lp.Character,W.CurrentCamera}
+    pcall(function()
+        local myChar=lp.Character
+        if myChar then
+            local hum=myChar:FindFirstChildOfClass("Humanoid")
+            if hum and hum.SeatPart then
+                local seat=hum.SeatPart
+                local vehicle=seat:FindFirstAncestorOfClass("Model")
+                table.insert(excludeList,vehicle or seat)
+            end
+        end
+    end)
+    params.FilterDescendantsInstances=excludeList
+    local ray=W:Raycast(fromPos,toPos-fromPos,params)
+    if not ray then return true end
+    local hit=ray.Instance
+    for _,plr in ipairs(P:GetPlayers()) do
+        if plr~=lp and plr.Character and plr.Character:IsAncestorOf(hit) then return true end
+    end
+    if AA.ignoreNearby then
+        if (ray.Position-fromPos).Magnitude < AA.nearbyDist then return true end
+    end
+    return false
+end
+
+local function getTargetPartAA(plr)
+    local ch=plr.Character
+    if not ch then return nil end
+    for _,opt in ipairs(PART_OPTIONS) do
+        if opt.id==AA.lockPart then
+            for _,partName in ipairs(opt.names) do
+                local p=ch:FindFirstChild(partName)
+                if p then return p end
+            end
+            break
+        end
+    end
+    return ch:FindFirstChild("HumanoidRootPart") or ch:FindFirstChild("Head")
+end
+
+local function predictPosAA(part)
+    if not part or not part.Parent then return nil end
+    local vel=part.AssemblyLinearVelocity or Vector3.new(0,0,0)
+    return part.Position + vel*AA.prediction
+end
+
+local function getFOVAA(targetPos)
+    local cam=W.CurrentCamera
+    if not cam then return 999 end
+    local toTarget=(targetPos-cam.CFrame.Position).Unit
+    local dot=cam.CFrame.LookVector:Dot(toTarget)
+    return math.deg(math.acos(math.clamp(dot,-1,1)))
+end
+
+local function getBestTargetAA()
+    local cam=W.CurrentCamera
+    if not cam then return nil end
+    local camPos=cam.CFrame.Position
+    local best=nil
+    local bestFOV=AA.fov
+    for _,plr in ipairs(P:GetPlayers()) do
+        if isEnemyAA(plr) then
+            local ch=plr.Character
+            local hum=ch and ch:FindFirstChildOfClass("Humanoid")
+            if ch and hum and hum.Health>0 then
+                local part=getTargetPartAA(plr)
+                if part then
+                    local pos=part.Position
+                    local dist=(pos-camPos).Magnitude
+                    if dist<=AA.range then
+                        local fov=getFOVAA(pos)
+                        if fov<=bestFOV then
+                            if not AA.visibleOnly or isVisibleAA(camPos,pos) then
+                                best={plr=plr,part=part,pos=pos,dist=dist,fov=fov}
+                                bestFOV=fov
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return best
+end
+
+local aaCircle=I("Frame",{Parent=sg,Size=UDim2.new(0,100,0,100),Position=UDim2.new(.5,-50,.5,-50),BackgroundTransparency=1,BorderSizePixel=0,Visible=false,ZIndex=2})
+I("UIStroke",{Parent=aaCircle,Color=C.on,Thickness=2,Transparency=0.4})
+cr(aaCircle,999)
+
+local function aaStep()
+    if AA.showFOV and AA.enabled then
+        local cam=W.CurrentCamera
+        if cam then
+            local vp=cam.ViewportSize
+            local radius=math.tan(math.rad(AA.fov/2))*vp.Y/2/math.tan(math.rad(35))
+            radius=math.clamp(radius,20,1500)
+            aaCircle.Size=UDim2.new(0,radius*2,0,radius*2)
+            aaCircle.Position=UDim2.new(.5,-radius,.5,-radius)
+        end
+        aaCircle.Visible=true
+    else aaCircle.Visible=false end
+
+    if not AA.enabled then return end
+    local best=getBestTargetAA()
+    AA.target=best and best.plr or nil
+    if not best or not best.part or not best.part.Parent then return end
+
+    local cam=W.CurrentCamera
+    if not cam then return end
+    local camPos=cam.CFrame.Position
+    local targetPos=predictPosAA(best.part) or best.part.Position
+    if (targetPos-camPos).Magnitude<1 then return end
+
+    if AA.spreadShot then
+        local ang=math.rad(AA.spreadAngle)
+        local rx=(math.random()-0.5)*ang
+        local ry=(math.random()-0.5)*ang
+        local cf=CFrame.Angles(rx,ry,0)
+        targetPos=camPos+(cf*(targetPos-camPos))
+    end
+
+    local lookCFrame=CFrame.lookAt(camPos,targetPos)
+    local proximity=1-(best.fov/AA.fov)
+    local finalStrength=AA.strength*(0.4+proximity*0.6)
+    cam.CFrame=cam.CFrame:Lerp(lookCFrame,finalStrength)
+end
+
+pcall(function() R:UnbindFromRenderStep("DeltaAimAssist") end)
+R:BindToRenderStep("DeltaAimAssist",9998,aaStep)
+
+-- ==================================================================
+-- NO RECOIL (ATIVADO)
+-- ==================================================================
+local NR={enabled=true,strength=0.85,threshold=0.02,lastCFrame=nil,_conn=nil,shots=0}
+
+local function startNoRecoil()
+    NR._conn=R.RenderStepped:Connect(function()
+        if not NR.enabled then return end
+        local cam=W.CurrentCamera
+        if not cam then return end
+        local current=cam.CFrame
+        if NR.lastCFrame then
+            local rotDiff=(current.LookVector-NR.lastCFrame.LookVector).Magnitude
+            local posDiff=(current.Position-NR.lastCFrame.Position).Magnitude
+            if rotDiff>NR.threshold and posDiff<0.5 then
+                NR.shots=NR.shots+1
+                local restored=CFrame.new(current.Position,current.Position+NR.lastCFrame.LookVector)
+                cam.CFrame=current:Lerp(restored,NR.strength)
+            end
+        end
+        NR.lastCFrame=cam.CFrame
+    end)
+end
+
+local function setNoRecoil(v)
+    NR.enabled=v
+    if v and not NR._conn then startNoRecoil(); nt("No Recoil ON",C.on)
+    elseif not v and NR._conn then NR._conn:Disconnect(); NR._conn=nil; NR.lastCFrame=nil; nt("No Recoil OFF",C.off) end
+end
+
+-- ==================================================================
+-- NO SPREAD (ATIVADO)
+-- ==================================================================
+local NS={enabled=true,strength=0.9,threshold=0.015,stabilizeTime=0.15,lastCFrame=nil,stableCFrame=nil,lastShotTime=0,_conn=nil,shots=0}
+
+local function startNoSpread()
+    NS._conn=R.RenderStepped:Connect(function()
+        if not NS.enabled then return end
+        local cam=W.CurrentCamera
+        if not cam then return end
+        local current=cam.CFrame
+        local now=tick()
+        if NS.lastCFrame then
+            local rotDiff=(current.LookVector-NS.lastCFrame.LookVector).Magnitude
+            local posDiff=(current.Position-NS.lastCFrame.Position).Magnitude
+            if rotDiff>NS.threshold and posDiff<0.5 then
+                NS.shots=NS.shots+1
+                NS.lastShotTime=now
+                if not NS.stableCFrame then NS.stableCFrame=NS.lastCFrame end
+            end
+        end
+        if NS.stableCFrame and (now-NS.lastShotTime)<NS.stabilizeTime then
+            local pos=current.Position
+            local stableLook=NS.stableCFrame.LookVector
+            local target=CFrame.new(pos,pos+stableLook)
+            cam.CFrame=current:Lerp(target,NS.strength)
+        elseif NS.stableCFrame and (now-NS.lastShotTime)>=NS.stabilizeTime then
+            NS.stableCFrame=nil
+        end
+        NS.lastCFrame=cam.CFrame
+    end)
+end
+
+local function setNoSpread(v)
+    NS.enabled=v
+    if v and not NS._conn then startNoSpread(); nt("No Spread ON",C.on)
+    elseif not v and NS._conn then NS._conn:Disconnect(); NS._conn=nil; NS.lastCFrame=nil; NS.stableCFrame=nil; nt("No Spread OFF",C.off) end
+end
+
+-- ==================================================================
+-- HITBOX (DESATIVADO)
+-- ==================================================================
+local hbState={on=false,multiplier=2,visible=false,boxes={}}
+
+local function isEnemy(plr)
+    if plr==lp then return false end
+    if plr.Team==nil or lp.Team==nil then return true end
+    return plr.Team~=lp.Team
+end
+
+local function makeHitbox(plr)
+    local ch=plr.Character
+    if not ch then return end
+    local hrp=ch:FindFirstChild("HumanoidRootPart")
+    local hum=ch:FindFirstChildOfClass("Humanoid")
+    if not hrp or not hum then return end
+    if hbState.boxes[plr] then return end
+    local origSize=hrp.Size
+    local origT=hrp.Transparency
+    local origC=hrp.Color
+    local origM=hrp.Material
+    hrp.Size=origSize*Vector3.new(hbState.multiplier,hbState.multiplier,hbState.multiplier)
+    hrp.CanQuery=true; hrp.CanTouch=true
+    local boxSize=origSize*Vector3.new(hbState.multiplier+0.5,hbState.multiplier+0.5,hbState.multiplier+0.5)
+    local box=I("Part",{Name="DeltaHitbox_"..plr.Name,Size=boxSize,Transparency=hbState.visible and 0.4 or 1,Color=Color3.fromRGB(255,40,40),Material=Enum.Material.Neon,CanCollide=false,CanQuery=true,CanTouch=true,Massless=true,Anchored=false,CastShadow=false,Parent=ch,CFrame=hrp.CFrame})
+    box:SetAttribute("DeltaHitbox",true)
+    local weld=I("WeldConstraint",{Part0=hrp,Part1=box,Parent=box})
+    if hbState.visible then hrp.Transparency=0.4; hrp.Color=Color3.fromRGB(255,40,40); hrp.Material=Enum.Material.Neon end
+    local diedConn=hum.Died:Connect(function() restoreHitbox(plr) end)
+    local chConn=ch.AncestryChanged:Connect(function(_,parent) if not parent then restoreHitbox(plr) end end)
+    hbState.boxes[plr]={part=box,hrp=hrp,hum=hum,origSize=origSize,origT=origT,origC=origC,origM=origM,diedConn=diedConn,chConn=chConn}
+end
+
+function restoreHitbox(plr)
+    local d=hbState.boxes[plr]
+    if not d then return end
+    if d.diedConn then pcall(function() d.diedConn:Disconnect() end) end
+    if d.chConn then pcall(function() d.chConn:Disconnect() end) end
+    if d.part and d.part.Parent then pcall(function() d.part:Destroy() end) end
+    if d.hrp and d.hrp.Parent then
+        pcall(function()
+            d.hrp.Size=d.origSize; d.hrp.Transparency=d.origT; d.hrp.Color=d.origC
+            if d.origM then d.hrp.Material=d.origM end
+        end)
+    end
+    hbState.boxes[plr]=nil
+end
+
+function clearAllHitboxes()
+    for plr in pairs(hbState.boxes) do restoreHitbox(plr) end
+    hbState.boxes={}
+end
+
+function setHitbox(v)
+    hbState.on=v
+    if v then
+        for _,plr in ipairs(P:GetPlayers()) do
+            if plr~=lp and isEnemy(plr) then makeHitbox(plr) end
+        end
+    else clearAllHitboxes() end
+end
+
+function setHitboxMultiplier(m)
+    hbState.multiplier=m
+    for plr,d in pairs(hbState.boxes) do
+        if d.hrp and d.hrp.Parent and d.origSize then d.hrp.Size=d.origSize*Vector3.new(m,m,m) end
+        if d.part and d.part.Parent and d.origSize then d.part.Size=d.origSize*Vector3.new(m+0.5,m+0.5,m+0.5) end
+    end
+end
+
+function setHitboxVisible(v)
+    hbState.visible=v
+    for plr,d in pairs(hbState.boxes) do
+        if d.part and d.part.Parent then d.part.Transparency=v and 0.4 or 1 end
+        if d.hrp and d.hrp.Parent then
+            if v then d.hrp.Transparency=0.4; d.hrp.Color=Color3.fromRGB(255,40,40); d.hrp.Material=Enum.Material.Neon
+            else d.hrp.Transparency=d.origT; d.hrp.Color=d.origC; if d.origM then d.hrp.Material=d.origM end end
+        end
+    end
+end
+
+local function hookPlayerHB(plr)
+    if plr==lp then return end
+    plr.CharacterAdded:Connect(function()
+        task.wait(0.5)
+        if hbState.on and isEnemy(plr) then makeHitbox(plr) end
+    end)
+    plr.CharacterRemoving:Connect(function() restoreHitbox(plr) end)
+end
+for _,plr in ipairs(P:GetPlayers()) do hookPlayerHB(plr) end
+P.PlayerAdded:Connect(function(plr) hookPlayerHB(plr) end)
+P.PlayerRemoving:Connect(function(plr) restoreHitbox(plr) end)
+
+-- ==================================================================
+-- MOVEMENT
+-- ==================================================================
+local infJump=true
+local infJumpConn
+
+local function setInfJump(v)
+    infJump=v
+    if infJumpConn then infJumpConn:Disconnect(); infJumpConn=nil end
+    if v then
+        infJumpConn=U.JumpRequest:Connect(function()
+            if not infJump then return end
+            local ch=lp.Character
+            local hum=ch and ch:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum:ChangeState(Enum.HumanoidStateType.Jumping)
+                task.wait(0.1)
+                if hum and hum.Parent then hum:ChangeState(Enum.HumanoidStateType.Running) end
+            end
+        end)
+    end
+end
+
+local highJump=false,origJP
+local function setHighJump(v)
+    highJump=v
+    local ch=lp.Character
+    local hum=ch and ch:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    if v then origJP=hum.JumpPower; hum.JumpPower=100; hum.UseJumpPower=true
+    else if origJP then hum.JumpPower=origJP end end
+end
+
+local speedOn=false,origSpeed=16
+local function setSpeed(v)
+    speedOn=v
+    local ch=lp.Character
+    local hum=ch and ch:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    if v then origSpeed=hum.WalkSpeed; hum.WalkSpeed=50
+    else hum.WalkSpeed=origSpeed or 16 end
+end
+
+lp.CharacterAdded:Connect(function(ch)
+    local hum=ch:WaitForChild("Humanoid",5)
+    if not hum then return end
+    if speedOn then hum.WalkSpeed=50 end
+    if highJump then hum.JumpPower=100; hum.UseJumpPower=true end
+end)
+
+local noclipOn=false
+R.Stepped:Connect(function()
+    if not noclipOn then return end
+    local ch=lp.Character
+    if not ch then return end
+    for _,p in ipairs(ch:GetDescendants()) do
+        if p:IsA("BasePart") and p.CanCollide then p.CanCollide=false end
+    end
+end)
+
+local flyOn=false,flyBV,flyBG,flyConn,flySpeed=50
+local function startFly()
+    local ch=lp.Character
+    local hrp=ch and ch:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    flyBV=I("BodyVelocity",{Parent=hrp,MaxForce=Vector3.new(1e5,1e5,1e5),Velocity=Vector3.new(0,0,0)})
+    flyBG=I("BodyGyro",{Parent=hrp,MaxTorque=Vector3.new(1e5,1e5,1e5),P=1000,D=50,CFrame=hrp.CFrame})
+    flyConn=R.RenderStepped:Connect(function()
+        if not flyOn then return end
+        local cam=W.CurrentCamera
+        if not cam then return end
+        local hum=ch:FindFirstChildOfClass("Humanoid")
+        if hum then hum.PlatformStand=true end
+        local move=Vector3.new(0,0,0)
+        if U:IsKeyDown(Enum.KeyCode.W) then move=move+cam.CFrame.LookVector end
+        if U:IsKeyDown(Enum.KeyCode.S) then move=move-cam.CFrame.LookVector end
+        if U:IsKeyDown(Enum.KeyCode.A) then move=move-cam.CFrame.RightVector end
+        if U:IsKeyDown(Enum.KeyCode.D) then move=move+cam.CFrame.RightVector end
+        if U:IsKeyDown(Enum.KeyCode.Space) then move=move+Vector3.new(0,1,0) end
+        if U:IsKeyDown(Enum.KeyCode.LeftControl) then move=move-Vector3.new(0,1,0) end
+        if move.Magnitude>0 then move=move.Unit*flySpeed end
+        if flyBV then flyBV.Velocity=move end
+        if flyBG then flyBG.CFrame=cam.CFrame end
+    end)
+end
+local function stopFly()
+    if flyBV then flyBV:Destroy(); flyBV=nil end
+    if flyBG then flyBG:Destroy(); flyBG=nil end
+    if flyConn then flyConn:Disconnect(); flyConn=nil end
+    local ch=lp.Character
+    local hum=ch and ch:FindFirstChildOfClass("Humanoid")
+    if hum then hum.PlatformStand=false end
+end
+local function setFly(v) flyOn=v; if v then startFly() else stopFly() end end
+
+-- ==================================================================
+-- ESP (ATIVADO)
+-- ==================================================================
+local espState={on=true,highlights={},maxDist=9999}
+
+local function makeESP(plr)
+    if plr==lp then return end
+    if not isEnemy(plr) then return end
+    if espState.highlights[plr] then return end
+    local hl=I("Highlight",{Name="DeltaESP_"..plr.Name,FillColor=Color3.fromRGB(255,50,50),FillTransparency=0.6,OutlineColor=Color3.fromRGB(255,0,0),OutlineTransparency=0,DepthMode=Enum.HighlightDepthMode.AlwaysOnTop,Adornee=nil,Parent=sg})
+    espState.highlights[plr]=hl
+end
+
+local function removeESP(plr)
+    local h=espState.highlights[plr]
+    if h then h:Destroy() end
+    espState.highlights[plr]=nil
+end
+
+local function clearAllESP()
+    for plr in pairs(espState.highlights) do removeESP(plr) end
+    espState.highlights={}
+end
+
+R.RenderStepped:Connect(function()
+    if not espState.on then return end
+    local cam=W.CurrentCamera
+    if not cam then return end
+    local camPos=cam.CFrame.Position
+    for plr,hl in pairs(espState.highlights) do
+        local ch=plr.Character
+        local hum=ch and ch:FindFirstChildOfClass("Humanoid")
+        if ch and hum and hum.Health>0 then
+            local hrp=ch:FindFirstChild("HumanoidRootPart")
+            local dist=hrp and (hrp.Position-camPos).Magnitude or 0
+            if dist<=espState.maxDist then
+                hl.Adornee=ch
+                if isEnemy(plr) then hl.FillColor=Color3.fromRGB(255,50,50); hl.OutlineColor=Color3.fromRGB(255,0,0)
+                else hl.FillColor=Color3.fromRGB(80,220,140); hl.OutlineColor=Color3.fromRGB(0,255,100) end
+            else hl.Adornee=nil end
+        else hl.Adornee=nil end
+    end
+end)
+
+local function setESP(v)
+    espState.on=v
+    if v then
+        for _,plr in ipairs(P:GetPlayers()) do
+            if plr~=lp and isEnemy(plr) then makeESP(plr) end
+        end
+    else clearAllESP() end
+end
+
+P.PlayerAdded:Connect(function(plr)
+    plr.CharacterAdded:Connect(function()
+        task.wait(0.5)
+        if espState.on and isEnemy(plr) then makeESP(plr) end
+    end)
+end)
+P.PlayerRemoving:Connect(function(plr) removeESP(plr) end)
+
+R.Heartbeat:Connect(function()
+    if not espState.on then return end
+    for _,plr in ipairs(P:GetPlayers()) do
+        if plr~=lp then
+            if isEnemy(plr) then
+                if not espState.highlights[plr] then makeESP(plr) end
+            else
+                if espState.highlights[plr] then removeESP(plr) end
+            end
+        end
+    end
+end)
+
+-- ==================================================================
+-- FPS BOOSTER
+-- ==================================================================
+local OG={s={},li={},terr=false}
+local mOn=true
+
+local function stL()
+    if OG.li.s then return end
+    OG.li={s=true,gs=L.GlobalShadows,br=L.Brightness,ed=L.EnvironmentDiffuseScale,es=L.EnvironmentSpecularScale}
+end
+local function rsL()
+    if not OG.li.s then return end
+    for k,v in pairs(OG.li) do if k~="s" then pcall(function() L[k]=v end) end end
+end
+
+local function mkC(chk)
+    return function(v)
+        if v then
+            for _,d in ipairs(W:GetDescendants()) do
+                if chk(d) then
+                    local r={}
+                    if d.Enabled~=nil then r.E=d.Enabled; d.Enabled=false end
+                    if (d:IsA("Decal") or d:IsA("Texture")) and d.Transparency~=nil then r.T=d.Transparency; d.Transparency=1 end
+                    if d:IsA("BasePart") and d.Reflectance>0 then r.R=d.Reflectance; d.Reflectance=0 end
+                    if next(r) then OG.s[d]=r end
+                end
+            end
+        else
+            for i,r in pairs(OG.s) do
+                if i and i.Parent then
+                    pcall(function()
+                        if r.E~=nil then i.Enabled=r.E end
+                        if r.T~=nil then i.Transparency=r.T end
+                        if r.R~=nil then i.Reflectance=r.R end
+                    end)
+                end
+            end
+            for k in pairs(OG.s) do OG.s[k]=nil end
+        end
+    end
+end
+
+local pAll=mkC(function(d) return d:IsA("ParticleEmitter") end)
+local lAll=mkC(function(d) return d:IsA("PointLight") or d:IsA("SpotLight") or d:IsA("SurfaceLight") end)
+local eAll=mkC(function(d) return d:IsA("Beam") or d:IsA("Trail") or d:IsA("Smoke") or d:IsA("Fire") or d:IsA("Sparkles") end)
+local dAll=mkC(function(d) return d:IsA("Decal") or d:IsA("Texture") end)
+local rAll=mkC(function(d) return d:IsA("BasePart") and d.Reflectance>0 end)
+
+local function pDist(v)
+    if v then
+        local cam=W.CurrentCamera; if not cam then return end
+        local cp=cam.CFrame.Position
+        for _,d in ipairs(W:GetDescendants()) do
+            if d:IsA("ParticleEmitter") and d.Parent and d.Parent:IsA("BasePart") then
+                if (d.Parent.Position-cp).Magnitude>150 then
+                    OG.s[d]=OG.s[d] or {}; OG.s[d].E=d.Enabled; d.Enabled=false
+                end
+            end
+        end
+    end
+end
+
+local pRateStore={}
+local function pRate(v)
+    if v then
+        for _,d in ipairs(W:GetDescendants()) do
+            if d:IsA("ParticleEmitter") then pRateStore[d]=d.Rate; d.Rate=d.Rate*0.3 end
+        end
+    else
+        for inst,orig in pairs(pRateStore) do
+            if inst and inst.Parent then pcall(function() inst.Rate=orig end) end
+        end
+        pRateStore={}
+    end
+end
+
+local function shT(v) if v then stL(); L.GlobalShadows=false elseif OG.li.gs~=nil then L.GlobalShadows=OG.li.gs end end
+local function loT(v)
+    if v then stL(); L.EnvironmentDiffuseScale=0; L.EnvironmentSpecularScale=0
+    else if OG.li.ed~=nil then L.EnvironmentDiffuseScale=OG.li.ed end; if OG.li.es~=nil then L.EnvironmentSpecularScale=OG.li.es end end
+end
+local function teT(v)
+    pcall(function()
+        if v then
+            OG.terr=W.Terrain.Decoration; W.Terrain.Decoration=false
+            W.Terrain.WaterWaveSize=0; W.Terrain.WaterReflectance=0
+        else W.Terrain.Decoration=OG.terr end
+    end)
+end
+
+function mApply(s)
+    mOn=s
+    if s then
+        stL(); pAll(true); lAll(true); eAll(true); dAll(true)
+        L.GlobalShadows=false; L.EnvironmentDiffuseScale=0; L.EnvironmentSpecularScale=0
+        pcall(function() W.Terrain.Decoration=false end)
+        nt("MASTER BOOST ON",C.on)
+    else
+        for i,r in pairs(OG.s) do
+            if i and i.Parent then
+                pcall(function()
+                    if r.E~=nil then i.Enabled=r.E end
+                    if r.T~=nil then i.Transparency=r.T end
+                    if r.R~=nil then i.Reflectance=r.R end
+                end)
+            end
+        end
+        for k in pairs(OG.s) do OG.s[k]=nil end
+        rsL(); pcall(function() W.Terrain.Decoration=true end)
+        nt("Gráfico restaurado",C.off)
+    end
+end
+
+-- Gráfico Mínimo
+local LQ={on=true,originalQuality=nil,meshes={},materials={},decals={},originalReflectance={},descConn=nil}
+local UserSettingsService=nil
+pcall(function() UserSettingsService=game:GetService("UserSettings") end)
+
+local function applyLowQuality(inst)
+    if not LQ.on then return end
+    pcall(function()
+        if inst:IsA("MeshPart") then
+            if LQ.meshes[inst]==nil then LQ.meshes[inst]=inst.RenderFidelity end
+            inst.RenderFidelity=Enum.RenderFidelity.Performance
+        end
+        if inst:IsA("BasePart") then
+            if inst.Material~=Enum.Material.SmoothPlastic then
+                if LQ.materials[inst]==nil then LQ.materials[inst]=inst.Material end
+                inst.Material=Enum.Material.SmoothPlastic
+            end
+            if inst.Reflectance>0 then
+                if LQ.originalReflectance[inst]==nil then LQ.originalReflectance[inst]=inst.Reflectance end
+                inst.Reflectance=0
+            end
+        end
+        if inst:IsA("Decal") or inst:IsA("Texture") then
+            if LQ.decals[inst]==nil then LQ.decals[inst]=inst.Transparency end
+            inst.Transparency=1
+        end
+    end)
+end
+
+local function setLowQuality(v)
+    LQ.on=v
+    if v then
+        pcall(function()
+            if UserSettingsService then
+                local s=UserSettingsService:GetService("UserGameSettings")
+                LQ.originalQuality=s.SavedQualityLevel
+                s.SavedQualityLevel=Enum.SavedQualitySetting.QualityLevel1
+            end
+        end)
+        for _,d in ipairs(W:GetDescendants()) do applyLowQuality(d) end
+        if LQ.descConn then LQ.descConn:Disconnect() end
+        LQ.descConn=W.DescendantAdded:Connect(function(d) if LQ.on then applyLowQuality(d) end end)
+        nt("Gráfico MÍNIMO ativado",C.on)
+    else
+        pcall(function()
+            if LQ.originalQuality and UserSettingsService then
+                local s=UserSettingsService:GetService("UserGameSettings")
+                s.SavedQualityLevel=LQ.originalQuality
+            end
+        end)
+        for part,mat in pairs(LQ.materials) do if part and part.Parent then pcall(function() part.Material=mat end) end end
+        LQ.materials={}
+        for mesh,fid in pairs(LQ.meshes) do if mesh and mesh.Parent then pcall(function() mesh.RenderFidelity=fid end) end end
+        LQ.meshes={}
+        for decal,t in pairs(LQ.decals) do if decal and decal.Parent then pcall(function() decal.Transparency=t end) end end
+        LQ.decals={}
+        for part,r in pairs(LQ.originalReflectance) do if part and part.Parent then pcall(function() part.Reflectance=r end) end end
+        LQ.originalReflectance={}
+        if LQ.descConn then pcall(function() LQ.descConn:Disconnect() end); LQ.descConn=nil end
+        nt("Gráfico restaurado",C.off)
+    end
+end
+
+-- FPS Monitor
+local pf=I("TextLabel",{Parent=sg,Size=UDim2.new(0,160,0,22),Position=UDim2.new(0,20,0,MAIN_H+40),BackgroundColor3=Color3.new(0,0,0),BackgroundTransparency=.5,Text="FPS: --",TextColor3=C.on,Font=FB,TextSize=12,Visible=false,BorderSizePixel=0,ZIndex=10}); cr(pf,4)
+
+local fF,fT,cF=0,0,60
+R.RenderStepped:Connect(function(dt)
+    fF=fF+1; fT=fT+dt
+    if fT>=.5 then
+        cF=math.floor(fF/fT+.5); fF,fT=0,0
+        if pf.Visible then pf.Text=string.format("FPS: %d | %.0fms",cF,1000/math.max(cF,1)) end
+    end
+end)
+
+local adOn=false
+task.spawn(function()
+    while sg.Parent do
+        task.wait(3)
+        if adOn and cF<30 and not mOn then mApply(true) end
+    end
+end)
+
+-- ==================================================================
+-- UI: COMBAT
+-- ==================================================================
+sec(pageCombat,"Aim Assist")
+tgl(pageCombat,"★ Aim Assist",true,function(v) AA.enabled=v; nt(v and "Aim Assist ON" or "Aim Assist OFF",v and C.on or C.off) end)
+selector(pageCombat,"Onde mirar:",PART_OPTIONS,AA.lockPart,function(id) AA.lockPart=id; nt("Mira: "..id,C.ac) end)
+sld(pageCombat,"Range (studs)",20,600,350,5,function(v) AA.range=v end)
+sld(pageCombat,"Ímã FOV (graus)",5,90,40,1,function(v) AA.fov=v end)
+sld(pageCombat,"Força do puxão",0.05,1,0.55,0.05,function(v) AA.strength=v end)
+sld(pageCombat,"Prediction (s)",0,0.5,0.25,0.05,function(v) AA.prediction=v end)
+tgl(pageCombat,"Wall Check",true,function(v) AA.visibleOnly=v end)
+tgl(pageCombat,"Ignorar partes próximas (carro)",true,function(v) AA.ignoreNearby=v end)
+sld(pageCombat,"Distância 'próxima'",5,30,15,1,function(v) AA.nearbyDist=v end)
+tgl(pageCombat,"Team Check",true,function(v) AA.teamCheck=v end)
+tgl(pageCombat,"Mostrar Ímã (círculo)",false,function(v) AA.showFOV=v end)
+
+sec(pageCombat,"Spread Shot")
+tgl(pageCombat,"★ Spread Shot (espalha mira)",false,function(v) AA.spreadShot=v; nt(v and "Spread Shot ON" or "Spread Shot OFF",v and C.on or C.off) end)
+sld(pageCombat,"Ângulo do espalhamento",1,15,3,0.5,function(v) AA.spreadAngle=v end)
+
+sec(pageCombat,"No Recoil")
+tgl(pageCombat,"★ No Recoil (mira firme)",true,function(v) setNoRecoil(v) end)
+sld(pageCombat,"Força",0.3,0.95,0.85,0.05,function(v) NR.strength=v end)
+sld(pageCombat,"Sensibilidade",0.005,0.1,0.02,0.005,function(v) NR.threshold=v end)
+
+sec(pageCombat,"No Spread")
+tgl(pageCombat,"★ No Spread (mira estável)",true,function(v) setNoSpread(v) end)
+sld(pageCombat,"Força",0.3,0.98,0.9,0.02,function(v) NS.strength=v end)
+sld(pageCombat,"Tempo de trava (s)",0.05,0.5,0.15,0.05,function(v) NS.stabilizeTime=v end)
+
+sec(pageCombat,"Hitbox (não funciona)")
+tgl(pageCombat,"Hitbox Expander",false,function(v) setHitbox(v) end)
+sld(pageCombat,"Hitbox Multiplicador",1,5,2,0.1,setHitboxMultiplier)
+tgl(pageCombat,"Mostrar Hitbox",false,setHitboxVisible)
+btn(pageCombat,"Limpar Hitbox",C.off,function() clearAllHitboxes() end)
+
+sec(pageCombat,"Info")
+tgl(pageCombat,"Mostrar Alvo Atual",false,function(v) targetLbl.Visible=v end)
+
+local targetLbl=I("TextLabel",{Parent=sg,Size=UDim2.new(0,220,0,22),Position=UDim2.new(0,20,0,MAIN_H+70),BackgroundColor3=Color3.new(0,0,0),BackgroundTransparency=0.5,Text="Alvo: --",TextColor3=C.off,Font=FB,TextSize=12,BorderSizePixel=0,Visible=false,ZIndex=10}); cr(targetLbl,4)
+
+R.RenderStepped:Connect(function()
+    if targetLbl.Visible then
+        if AA.target then targetLbl.Text="🎯 "..AA.target.Name; targetLbl.TextColor3=C.on
+        else targetLbl.Text="Alvo: --"; targetLbl.TextColor3=C.off end
+    end
+end)
+
+-- ==================================================================
+-- UI: MOVEMENT
+-- ==================================================================
+sec(pageMovement,"Movimento")
+tgl(pageMovement,"★ Infinite Jump",true,function(v) setInfJump(v); nt(v and "Infinite Jump ON" or "Infinite Jump OFF",v and C.on or C.off) end)
+tgl(pageMovement,"High Jump (100)",false,setHighJump)
+tgl(pageMovement,"Speed Boost (50)",false,setSpeed)
+tgl(pageMovement,"Noclip",false,function(v) noclipOn=v end)
+
+sec(pageMovement,"Fly")
+tgl(pageMovement,"★ Fly (WASD)",false,setFly)
+sld(pageMovement,"Fly Speed",10,200,50,5,function(v) flySpeed=v end)
+
+-- ==================================================================
+-- UI: VISUAL
+-- ==================================================================
+sec(pageVisual,"ESP")
+tgl(pageVisual,"★ ESP Highlight (só inimigos)",true,function(v) setESP(v); nt(v and "ESP ON" or "ESP OFF",v and C.on or C.off) end)
+sld(pageVisual,"ESP Distância (studs)",100,3000,9999,50,function(v) espState.maxDist=v end)
+btn(pageVisual,"Limpar ESP",C.off,function() clearAllESP() end)
+
+-- ==================================================================
+-- UI: FPS
+-- ==================================================================
+sec(pageFPS,"Booster")
+tgl(pageFPS,"★ MASTER BOOST (tudo)",true,function(v) mApply(v) end)
+tgl(pageFPS,"Partículas TODAS OFF",false,pAll)
+tgl(pageFPS,"Partículas DISTANTES OFF (>150)",false,pDist)
+tgl(pageFPS,"Particle Rate 70% OFF",false,function(v) pRate(v); nt(v and "Partículas 30%" or "Partículas restauradas",v and C.on or C.off) end)
+
+sec(pageFPS,"Gráfico")
+tgl(pageFPS,"★ Gráfico MÍNIMO (rápido)",true,function(v) setLowQuality(v) end)
+
+sec(pageFPS,"Luzes & Efeitos")
+tgl(pageFPS,"Luzes TODAS OFF",false,lAll)
+tgl(pageFPS,"Efeitos OFF",false,eAll)
+tgl(pageFPS,"Texturas/Decais OFF",false,dAll)
+tgl(pageFPS,"Reflexos OFF",false,rAll)
+tgl(pageFPS,"Sombras Globais OFF",false,shT)
+tgl(pageFPS,"Iluminação Simplificada",false,loT)
+tgl(pageFPS,"Terreno decorado OFF",false,teT)
+
+sec(pageFPS,"Monitor")
+tgl(pageFPS,"FPS Monitor",false,function(v) pf.Visible=v end)
+tgl(pageFPS,"Auto Adaptive (<30 FPS)",false,function(v) adOn=v end)
+
+btn(pageFPS,"Restaurar FPS",C.off,function()
+    if mOn then mApply(false) end
+    if next(pRateStore) then pRate(false) end
+    if LQ.on then setLowQuality(false) end
+    nt("FPS restaurado",C.off)
+end)
+
+-- ============ MIN / DRAG ============
+local minimized=false
+minB.MouseButton1Click:Connect(function()
+    minimized=not minimized
+    if minimized then
+        rt.Size=UDim2.new(0,MAIN_W,0,32)
+        tabBar.Visible=false; contentFrame.Visible=false; minB.Text="▲"
+    else
+        rt.Size=UDim2.new(0,MAIN_W,0,MAIN_H)
+        tabBar.Visible=true; contentFrame.Visible=true; minB.Text="—"
+    end
+end)
+
+local dg,dS,sP
+hd.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then dg=true; dS=i.Position; sP=rt.Position end end)
+U.InputChanged:Connect(function(i) if not dg then return end; if i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch then local d=i.Position-dS; rt.Position=UDim2.new(sP.X.Scale,sP.X.Offset+d.X,sP.Y.Scale,sP.Y.Offset+d.Y) end end)
+U.InputEnded:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then dg=false end end)
+
+-- ============ AUTO-START ============
+task.spawn(function()
+    task.wait(0.5)
+    -- Aplica todas as configs ativas
+    setInfJump(true)
+    mApply(true)
+    setNoRecoil(true)
+    setNoSpread(true)
+    setESP(true)
+    setLowQuality(true)
+    nt("DELTA v10.5 — configs carregadas",C.ac)
+    nt("ESP + Master + Aim + Recoil + Spread ON",C.on)
+end)
+
+-- ============ CLEANUP ============
+sg.Destroying:Connect(function()
+    pcall(function() R:UnbindFromRenderStep("DeltaAimAssist") end)
+    if mOn then pcall(function() mApply(false) end) end
+    if infJumpConn then pcall(function() infJumpConn:Disconnect() end) end
+    if flyOn then pcall(function() setFly(false) end) end
+    if LQ.on then pcall(function() setLowQuality(false) end) end
+    clearAllHitboxes(); clearAllESP()
+end)
+
+nt("DELTA BOOST v10.5 carregado",C.ac)
+print("[DELTA BOOST v10.5] carregado.")

@@ -1,1 +1,0 @@
-# Troca-troca---RJ-fps-script-
